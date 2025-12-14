@@ -1,0 +1,292 @@
+/* previsioni.css - Pagina dettaglio previsioni */
+
+:root {
+  --bg: #f0f4f8;
+  --card: #ffffff;
+  --text: #1a202c;
+  --muted: #718096;
+  --accent: #3182ce;
+  --marine: #0ea5e9;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --radius: 12px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.app-container {
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+
+/* Header */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.city-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-align: center;
+  flex: 1;
+}
+
+.refresh-btn {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+/* Error */
+.error-msg {
+  background: #fee;
+  color: #c33;
+  padding: 16px;
+  margin: 16px 20px;
+  border-radius: var(--radius);
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+/* Loading */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  color: var(--muted);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Main content */
+.main-content {
+  padding: 0 0 20px;
+}
+
+/* Current summary */
+.current-summary {
+  background: linear-gradient(135deg, var(--accent), var(--marine));
+  color: white;
+  padding: 32px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  justify-content: center;
+}
+
+.current-icon {
+  font-size: 4rem;
+}
+
+.current-info {
+  text-align: left;
+}
+
+.current-temp {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.current-desc {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  margin-top: 6px;
+}
+
+/* Section */
+.section {
+  margin-top: 24px;
+  padding: 0 20px;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+/* Hourly scroll */
+.hourly-scroll {
+  display: grid;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 8px 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+
+.hourly-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.hourly-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  min-width: 160px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.hourly-time {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.hourly-icon {
+  font-size: 2rem;
+  margin: 8px 0;
+}
+
+.hourly-temp {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 6px 0;
+}
+
+.hourly-desc {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.hourly-wind,
+.hourly-wave {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+/* Days grid */
+.days-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.day-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.day-card:active {
+  transform: scale(0.97);
+}
+
+.day-card.selected {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-lg);
+}
+
+.day-date {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.day-icon {
+  font-size: 2.5rem;
+  margin: 8px 0;
+}
+
+.day-temp {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 6px 0;
+}
+
+.day-desc {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.day-wave {
+  font-size: 0.8rem;
+  color: var(--marine);
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+/* Utilities */
+.hidden {
+  display: none !important;
+}
+
+/* Responsive */
+@media (min-width: 600px) {
+  .app-container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .current-summary {
+    border-radius: var(--radius);
+    margin: 20px;
+  }
+  
+  .days-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
