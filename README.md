@@ -6,6 +6,7 @@ Un'applicazione web moderna e intuitiva per visualizzare le previsioni meteo e m
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777BB4.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Database](https://img.shields.io/badge/Database-NoSQL-red.svg)
+[![🚀 Deploy su Netsons](https://github.com/smal82/Previsioni-Meteo/actions/workflows/deploy-netsons.yml/badge.svg)](https://github.com/smal82/Previsioni-Meteo/actions/workflows/deploy-netsons.yml)
 
 ## 📋 Caratteristiche
 
