@@ -1,6 +1,6 @@
-# ☀️ Meteo Sicilia
+# ☀️ Previsioni Meteo
 
-Un'applicazione web moderna e intuitiva per visualizzare le previsioni meteo e marine per le città della Sicilia.
+Un'applicazione web moderna e intuitiva per visualizzare le previsioni meteo e marine.
 
 ![Version](https://img.shields.io/badge/version-7.0.0-blue.svg)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777BB4.svg)
