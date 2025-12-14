@@ -155,6 +155,9 @@ chmod 644 sites.json  # se esiste
 ✅ Safari 14+  
 ✅ Mobile browsers (iOS Safari, Chrome Mobile)
 
+## 🌐 Demo
+È possibile utilizzare una demo di questa applicazione all'indirizzo: https://smal.netsons.org/meteo2/
+
 ## 🤝 Contribuire
 
 I contributi sono benvenuti! Per contribuire:
