@@ -1,0 +1,53 @@
+name: 🚀 Deploy su Netsons
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Permette deploy manuale
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout del codice
+      uses: actions/checkout@v3
+    
+    - name: 🔍 Verifica sintassi PHP
+      run: |
+        echo "🔍 Controllo sintassi PHP..."
+        find . -name "*.php" -exec php -l {} \; || exit 1
+        echo "✅ Sintassi PHP corretta!"
+    
+    - name: 📦 Prepara file per deploy
+      run: |
+        echo "📦 Preparazione file..."
+        # Rimuovi file non necessari per il deploy
+        rm -rf .git .github README.md .gitignore LICENSE
+        echo "✅ File preparati!"
+    
+    - name: 🚀 Deploy via FTP su Netsons
+      uses: SamKirkland/FTP-Deploy-Action@4.3.3
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        server-dir: ${{ secrets.FTP_PATH }}
+        protocol: ftp
+        port: 21
+        exclude: |
+          **/.git*
+          **/.git*/**
+          **/node_modules/**
+          **/.DS_Store
+          sites.json
+          .github/**
+          README.md
+          LICENSE
+    
+    - name: ✅ Deploy completato
+      run: |
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "🎉 Deploy completato con successo!"
+        echo "🌐 URL: https://smal.netsons.org/meteo2/"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
