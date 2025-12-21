@@ -8,7 +8,7 @@ let selectedDayIndex = 0;
 const FORECAST_BASE = 'https://api.open-meteo.com/v1/forecast';
 const MARINE_BASE = 'https://marine-api.open-meteo.com/v1/marine';
 
-// Caricamento database città
+// Caricamento database città dal file JSON
 async function loadSitesData() {
   try {
     const response = await fetch('sites.json');
@@ -22,11 +22,11 @@ async function loadSitesData() {
   }
 }
 
-// Mappatura Codici WMO
+// Mappatura Codici WMO (Weather Interpretation Codes)
 const WEATHER_CODES = {
   0: { text: "Sereno", day: "☀️", night: "🌕" },
-  1: { text: "Quasi sereno", day: "🌤️", night: "🌙☁️" },
-  2: { text: "Parzialmente nuvoloso", day: "⛅", night: "🌙☁️" },
+  1: { text: "Quasi sereno", day: "🌤️", night: "🌙" },
+  2: { text: "Parzialmente nuvoloso", day: "⛅", night: "🌙" },
   3: { text: "Coperto", day: "☁️", night: "☁️" },
   45: { text: "Nebbia", day: "🌫️", night: "🌫️" },
   48: { text: "Nebbia con brina", day: "🌫️❄️", night: "🌫️❄️" },
@@ -38,15 +38,20 @@ const WEATHER_CODES = {
   65: { text: "Pioggia violenta", day: "🌧️💦", night: "🌧️💦" },
   71: { text: "Neve debole", day: "🌨️", night: "🌨️" },
   73: { text: "Neve forte", day: "❄️❄️", night: "❄️❄️" },
+  75: { text: "Neve intensa", day: "❄️❄️❄️", night: "❄️❄️❄️" },
+  77: { text: "Granelli di neve", day: "🌨️", night: "🌨️" },
   80: { text: "Rovescio debole", day: "🌦️", night: "🌧️" },
   81: { text: "Rovescio moderato", day: "🌧️💧", night: "🌧️💧" },
-  95: { text: "Temporale", day: "⛈️", night: "⛈️" }
+  82: { text: "Rovescio violento", day: "🌧️💦", night: "🌧️💦" },
+  85: { text: "Rovescio neve debole", day: "🌨️", night: "🌨️" },
+  86: { text: "Rovescio neve forte", day: "❄️❄️", night: "❄️❄️" },
+  95: { text: "Temporale", day: "⛈️", night: "⛈️" },
+  96: { text: "Temporale con grandine", day: "⛈️🌨️", night: "⛈️🌨️" },
+  99: { text: "Temporale forte", day: "⛈️💦", night: "⛈️💦" }
 };
 
-function weatherCodeToEmoji(code) {
+function weatherCodeToEmoji(code, isNight = false) {
   code = Number(code);
-  const hour = new Date().getHours();
-  const isNight = (hour >= 0 && hour <= 6) || (hour >= 18 && hour <= 23);
   const info = WEATHER_CODES[code] || { text: "Variabile", day: "⛅", night: "🌙" };
   return { icon: isNight ? info.night : info.day, text: info.text };
 }
@@ -61,15 +66,15 @@ function degToCompass(deg) {
 function metersToCm(m) { return isNaN(m) ? '--' : Math.round(m * 100); }
 function kmhToKnots(kmh) { return isNaN(kmh) ? '--' : Math.round(kmh * 0.539957); }
 
-// Chiamate API
+// Chiamate API con parametro 14 giorni
 async function fetchNormal(lat, lon) {
-  const url = `${FORECAST_BASE}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weathercode,windspeed_10m,winddirection_10m&daily=temperature_2m_max,temperature_2m_min,weathercode&current_weather=true&timezone=auto`;
+  const url = `${FORECAST_BASE}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weathercode,windspeed_10m,winddirection_10m&daily=temperature_2m_max,temperature_2m_min,weathercode&current_weather=true&forecast_days=14&timezone=auto`;
   const res = await fetch(url);
   return res.json();
 }
 
 async function fetchMarine(lat, lon) {
-  const url = `${MARINE_BASE}?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_direction&daily=wave_height_max&timezone=auto`;
+  const url = `${MARINE_BASE}?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_direction&daily=wave_height_max&forecast_days=14&timezone=auto`;
   const res = await fetch(url);
   return res.json();
 }
@@ -80,7 +85,7 @@ function hideError() { $('#error-msg').addClass('hidden'); }
 function showLoading() { $('#loading').removeClass('hidden'); $('#main-content').addClass('hidden'); }
 function hideLoading() { $('#loading').addClass('hidden'); $('#main-content').removeClass('hidden'); }
 
-// Rendering Riepilogo
+// Rendering Riepilogo Superiore
 function renderCurrentSummary(site) {
   const cur = weatherData.current_weather;
   const wc = weatherCodeToEmoji(cur.weathercode);
@@ -94,7 +99,7 @@ function renderCurrentSummary(site) {
   $('#current-desc').html(desc);
 }
 
-// Rendering Calendario Giorni
+// Rendering Calendario Giorni (Day Cards)
 function renderDaysCalendar(site) {
   const container = $('#days-container').empty();
   const today = new Date().toISOString().split('T')[0];
@@ -127,7 +132,7 @@ function renderDaysCalendar(site) {
   });
 }
 
-// Rendering Fasce Orarie
+// Rendering Fasce Orarie (Hourly Cards)
 function renderDayHourly(site, dateStr, isToday) {
   const container = $('#hourly-container').empty();
   const hours = weatherData.hourly.time;
@@ -138,9 +143,10 @@ function renderDayHourly(site, dateStr, isToday) {
       const dateObj = new Date(time);
       const h = dateObj.getHours();
 
-      // Mostra tutte le ore per oggi (dal momento attuale), ogni 3 ore per gli altri giorni
+      // Logica: tutte le ore per oggi, ogni 3 ore per il futuro
       if (isToday ? (h >= curHour) : (h % 3 === 0)) {
-        const wc = weatherCodeToEmoji(weatherData.hourly.weathercode[i]);
+        const isNight = (h >= 0 && h <= 6) || (h >= 18 && h <= 23);
+        const wc = weatherCodeToEmoji(weatherData.hourly.weathercode[i], isNight);
         const temp = Math.round(weatherData.hourly.temperature_2m[i]);
         const windSpeed = Math.round(weatherData.hourly.windspeed_10m[i]);
         const windDir = degToCompass(weatherData.hourly.winddirection_10m[i]);
@@ -150,7 +156,7 @@ function renderDayHourly(site, dateStr, isToday) {
         card.append(`<div class="hourly-time">${timeLabel}</div>`);
         card.append(`<div class="hourly-icon">${wc.icon}</div>`);
         card.append(`<div class="hourly-temp">${temp}°</div>`);
-        card.append(`<div class="hourly-desc">${wc.text}</div>`);
+        card.append(`<div class="hourly-desc">${wc.text}</div>`); // Qui è presente il div richiesto
         
         if (site.type === 'marine') {
           const mIdx = marineData ? marineData.hourly.time.indexOf(time) : -1;
@@ -195,10 +201,8 @@ async function loadWeather() {
     renderCurrentSummary(site);
     renderDaysCalendar(site);
     
-    // Al caricamento mostra sempre il giorno selezionato (inizialmente oggi)
-    const currentSelectedDate = weatherData.daily.time[selectedDayIndex];
-    const isToday = currentSelectedDate === new Date().toISOString().split('T')[0];
-    renderDayHourly(site, currentSelectedDate, isToday);
+    const todayStr = new Date().toISOString().split('T')[0];
+    renderDayHourly(site, todayStr, true);
     
     hideLoading();
   } catch (err) {
@@ -208,7 +212,7 @@ async function loadWeather() {
   }
 }
 
-// Avvio
+// Avvio al caricamento del documento
 $(async function() {
   const ok = await loadSitesData();
   if (ok) loadWeather();
