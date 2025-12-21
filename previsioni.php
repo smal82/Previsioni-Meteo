@@ -11,6 +11,8 @@ $city = isset($_GET['city']) ? $_GET['city'] : 'alcamo';
   <title>Previsioni Meteo</title>
   <link rel="stylesheet" href="assets/previsioni.css?v=<?php echo APP_VERSION; ?>">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+   <!-- Aggiungi html2canvas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
   <div class="app-container">
@@ -18,6 +20,7 @@ $city = isset($_GET['city']) ? $_GET['city'] : 'alcamo';
     <header class="app-header">
       <a href="index.php" class="back-btn">‹ Indietro</a>
       <h1 id="city-name" class="city-title">Caricamento...</h1>
+      <button id="download-png" class="refresh-btn" title="Scarica PNG">📷</button>
       <button id="refresh-btn" class="refresh-btn">⟳</button>
     </header>
 
@@ -43,7 +46,7 @@ $city = isset($_GET['city']) ? $_GET['city'] : 'alcamo';
       </section>
 
       <!-- Hourly section (today from current hour OR selected day) -->
-      <section class="section">
+      <section id="meteo" class="section">
         <h2 class="section-title" id="hourly-title">Oggi - Orario</h2>
         <div id="hourly-container" class="hourly-scroll">
           <!-- JS generated -->
@@ -65,5 +68,52 @@ $city = isset($_GET['city']) ? $_GET['city'] : 'alcamo';
     const CITY_KEY = '<?php echo htmlspecialchars($city); ?>';
   </script>
   <script src="assets/previsioni.js?v=<?php echo APP_VERSION; ?>"></script>
+  <script>
+     // Funzione per scaricare la sezione #meteo come PNG
+$('#download-png').click(function() {
+  const btn = $(this);
+  const originalText = btn.text();
+  
+  // Feedback visivo
+  btn.text('⏳').prop('disabled', true);
+  
+  // Cattura la sezione #meteo
+  html2canvas(document.querySelector('#meteo'), {
+    backgroundColor: '#f0f4f8', // Sfondo come la pagina
+    scale: 2,
+    logging: false,
+    useCORS: true
+  }).then(canvas => {
+    canvas.toBlob(function(blob) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const cityName = $('#city-name').text().toLowerCase().replace(/\s+/g, '-');
+      
+      const hourlyTitle = $('#hourly-title').text().trim();
+      const datePart = hourlyTitle.toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[àáâãäå]/g, 'a')
+        .replace(/[èéêë]/g, 'e')
+        .replace(/[ìíîï]/g, 'i')
+        .replace(/[òóôõö]/g, 'o')
+        .replace(/[ùúûü]/g, 'u')
+        .replace(/[^a-z0-9-]/g, '');
+      
+      link.download = `meteo-${cityName}-${datePart}.png`;
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      btn.text(originalText).prop('disabled', false);
+    }, 'image/png');
+  }).catch(error => {
+    console.error('Errore durante la creazione del PNG:', error);
+    alert('Errore durante la creazione dell\'immagine');
+    btn.text(originalText).prop('disabled', false);
+  });
+});
+  </script>
 </body>
 </html>
