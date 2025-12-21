@@ -1,30 +1,28 @@
-/* previsioni.js - Logic per pagina previsioni con meteo + marine per città marine */
+/* previsioni.js - Gestione completa previsioni meteo e marine */
 
 let SITES = {};
 let weatherData = null;
 let marineData = null;
-let selectedDayIndex = null;
+let selectedDayIndex = 0;
 
 const FORECAST_BASE = 'https://api.open-meteo.com/v1/forecast';
 const MARINE_BASE = 'https://marine-api.open-meteo.com/v1/marine';
 
-// Funzione per caricare i dati delle città dal file JSON
+// Caricamento database città
 async function loadSitesData() {
   try {
     const response = await fetch('sites.json');
-    if (!response.ok) {
-      throw new Error('Impossibile caricare sites.json');
-    }
+    if (!response.ok) throw new Error('Errore caricamento sites.json');
     SITES = await response.json();
     return true;
   } catch (error) {
-    console.error('Errore nel caricamento di sites.json:', error);
-    showError('Errore nel caricamento della configurazione');
+    console.error(error);
+    showError('Errore nella configurazione delle città');
     return false;
   }
 }
 
-// Mappa codici WMO
+// Mappatura Codici WMO
 const WEATHER_CODES = {
   0: { text: "Sereno", day: "☀️", night: "🌕" },
   1: { text: "Quasi sereno", day: "🌤️", night: "🌙☁️" },
@@ -36,8 +34,8 @@ const WEATHER_CODES = {
   53: { text: "Pioviggine moderata", day: "🌦️💧", night: "🌧️💧" },
   55: { text: "Pioviggine intensa", day: "🌧️💧💧", night: "🌧️💧💧" },
   61: { text: "Pioggia debole", day: "🌦️", night: "🌧️" },
-  62: { text: "Pioggia moderata", day: "🌧️💧", night: "🌧️💧" },
-  63: { text: "Pioggia forte", day: "🌧️💧💧", night: "🌧️💧💧" },
+  63: { text: "Pioggia forte", day: "🌧️💧", night: "🌧️💧" },
+  65: { text: "Pioggia violenta", day: "🌧️💦", night: "🌧️💦" },
   71: { text: "Neve debole", day: "🌨️", night: "🌨️" },
   73: { text: "Neve forte", day: "❄️❄️", night: "❄️❄️" },
   80: { text: "Rovescio debole", day: "🌦️", night: "🌧️" },
@@ -53,185 +51,123 @@ function weatherCodeToEmoji(code) {
   return { icon: isNight ? info.night : info.day, text: info.text };
 }
 
-function degToCompassName(deg) {
+function degToCompass(deg) {
   if (deg === null || isNaN(deg)) return '--';
-  const d = (Number(deg) + 360) % 360;
-  const points = ['Nord', 'Nord-NordEst', 'NordEst', 'Est-NordEst', 'Est', 'Est-SudEst', 'SudEst', 'Sud-SudEst', 'Sud', 'Sud-SudOvest', 'SudOvest', 'Ovest-SudOvest', 'Ovest', 'Ovest-NordOvest', 'NordOvest', 'Nord-NordOvest'];
-  const idx = Math.floor((d + 11.25) / 22.5) % 16;
-  return points[idx];
+  const val = Math.floor((deg / 22.5) + 0.5);
+  const arr = ["Nord", "Nord-NordEst", "NordEst", "Est-NordEst", "Est", "Est-SudEst", "SudEst", "Sud-SudEst", "Sud", "Sud-SudOvest", "SudOvest", "Ovest-SudOvest", "Ovest", "Ovest-NordOvest", "NordOvest", "Nord-NordOvest"];
+  return arr[(val % 16)];
 }
 
-function metersToCm(m) {
-  if (m === null || isNaN(m)) return '--';
-  return Math.round(Number(m) * 100);
-}
+function metersToCm(m) { return isNaN(m) ? '--' : Math.round(m * 100); }
+function kmhToKnots(kmh) { return isNaN(kmh) ? '--' : Math.round(kmh * 0.539957); }
 
-function kmhToKnots(kmh) {
-  if (kmh === null || isNaN(kmh) || kmh === '--') return '--';
-  return Math.round(Number(kmh) * 0.539957);
-}
-
-// Fetch API
+// Chiamate API
 async function fetchNormal(lat, lon) {
-  const params = new URLSearchParams({
-    latitude: lat,
-    longitude: lon,
-    hourly: 'temperature_2m,weathercode,windspeed_10m,winddirection_10m',
-    daily: 'temperature_2m_max,temperature_2m_min,weathercode',
-    current_weather: 'true',
-    forecast_days: 14,
-    timezone: 'auto'
-  });
-  const res = await fetch(`${FORECAST_BASE}?${params.toString()}`);
-  if (!res.ok) throw new Error('API error');
+  const url = `${FORECAST_BASE}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weathercode,windspeed_10m,winddirection_10m&daily=temperature_2m_max,temperature_2m_min,weathercode&current_weather=true&timezone=auto`;
+  const res = await fetch(url);
   return res.json();
 }
 
 async function fetchMarine(lat, lon) {
-  const params = new URLSearchParams({
-    latitude: lat,
-    longitude: lon,
-    hourly: 'wave_height,wave_direction',
-    daily: 'wave_height_max',
-    forecast_days: 14,
-    timezone: 'auto'
-  });
-  const res = await fetch(`${MARINE_BASE}?${params.toString()}`);
-  if (!res.ok) throw new Error('Marine API error');
+  const url = `${MARINE_BASE}?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_direction&daily=wave_height_max&timezone=auto`;
+  const res = await fetch(url);
   return res.json();
 }
 
-// Utility UI
+// UI Helpers
 function showError(msg) { $('#error-msg').text(msg).removeClass('hidden'); }
 function hideError() { $('#error-msg').addClass('hidden'); }
 function showLoading() { $('#loading').removeClass('hidden'); $('#main-content').addClass('hidden'); }
 function hideLoading() { $('#loading').addClass('hidden'); $('#main-content').removeClass('hidden'); }
-function getTodayDateString() { return new Date().toISOString().split('T')[0]; }
 
-// RENDER: Riepilogo attuale
+// Rendering Riepilogo
 function renderCurrentSummary(site) {
-  if (weatherData.current_weather) {
-    const cur = weatherData.current_weather;
-    const wc = weatherCodeToEmoji(cur.weathercode);
-    $('#current-icon').text(wc.icon);
-    $('#current-temp').text(Math.round(cur.temperature) + '°');
-    
-    let desc = `${wc.text}<br>Vento: ${Math.round(cur.windspeed)} km/h da ${degToCompassName(cur.winddirection)}`;
-    
-    if (site.type === 'marine' && marineData) {
-      const waveH = metersToCm(marineData.daily.wave_height_max[0]);
-      desc += `<br>🌊 Onda max oggi: ${waveH} cm`;
-    }
-    $('#current-desc').html(desc);
+  const cur = weatherData.current_weather;
+  const wc = weatherCodeToEmoji(cur.weathercode);
+  $('#current-icon').text(wc.icon);
+  $('#current-temp').text(Math.round(cur.temperature) + '°');
+  
+  let desc = `${wc.text}<br>Vento: ${Math.round(cur.windspeed)} km/h da ${degToCompass(cur.winddirection)}`;
+  if (site.type === 'marine' && marineData) {
+    desc += `<br>🌊 Onda max oggi: ${metersToCm(marineData.daily.wave_height_max[0])} cm`;
   }
+  $('#current-desc').html(desc);
 }
 
-// RENDER: Calendario Prossimi Giorni
+// Rendering Calendario Giorni
 function renderDaysCalendar(site) {
   const container = $('#days-container').empty();
-  if (!weatherData.daily) return;
+  const today = new Date().toISOString().split('T')[0];
 
-  const todayStr = getTodayDateString();
-
-  weatherData.daily.time.forEach((dateStr, idx) => {
-    const date = new Date(dateStr);
-    const isToday = dateStr === todayStr;
-    const wc = weatherCodeToEmoji(weatherData.daily.weathercode[idx]);
-    const tmax = Math.round(weatherData.daily.temperature_2m_max[idx]);
-    const tmin = Math.round(weatherData.daily.temperature_2m_min[idx]);
-
-    const card = $('<div class="day-card"></div>')
-      .attr('data-idx', idx)
-      .attr('data-date', dateStr)
-      .attr('data-is-today', isToday);
-
-    if (isToday) card.addClass('selected'); // Seleziona "Oggi" all'avvio
-
-    card.append(`<div class="day-date">${isToday ? 'Oggi' : date.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric' })}</div>`);
-    card.append(`<div class="day-icon">${wc.icon}</div>`);
-    card.append(`<div class="day-temp">${tmax}° / ${tmin}°</div>`);
+  weatherData.daily.time.forEach((dateStr, i) => {
+    const dateObj = new Date(dateStr);
+    const isToday = dateStr === today;
+    const wc = weatherCodeToEmoji(weatherData.daily.weathercode[i]);
     
-    // Al click, seleziona il giorno
+    const card = $('<div class="day-card"></div>')
+      .toggleClass('selected', i === selectedDayIndex)
+      .attr('data-index', i);
+
+    card.append(`<div class="day-date">${isToday ? 'Oggi' : dateObj.toLocaleDateString('it-IT', {weekday:'short', day:'numeric'})}</div>`);
+    card.append(`<div class="day-icon">${wc.icon}</div>`);
+    card.append(`<div class="day-temp">${Math.round(weatherData.daily.temperature_2m_max[i])}° / ${Math.round(weatherData.daily.temperature_2m_min[i])}°</div>`);
+    
     card.on('click', function() {
-      selectDay(idx, site, dateStr, isToday);
+      selectedDayIndex = i;
+      $('.day-card').removeClass('selected');
+      $(this).addClass('selected');
+      
+      const label = isToday ? 'Oggi - Orario' : dateObj.toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long'});
+      $('#hourly-title').text(label);
+      
+      renderDayHourly(site, dateStr, isToday);
     });
 
     container.append(card);
   });
 }
 
-// FUNZIONE: Selezione del giorno
-function selectDay(idx, site, dateStr, isToday) {
-  selectedDayIndex = idx;
-
-  // Feedback grafico
-  $('.day-card').removeClass('selected');
-  $(`.day-card[data-idx="${idx}"]`).addClass('selected');
-
-  // Aggiorna titolo sezione oraria
-  let dayLabel;
-  if (isToday) {
-    dayLabel = 'Oggi - Orario';
-  } else {
-    const date = new Date(dateStr);
-    dayLabel = date.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
-  }
-  $('#hourly-title').text(dayLabel);
-
-  // Renderizza le ore per quel giorno specifico
-  renderDayHourly(site, dateStr, isToday);
-
-  // Scroll automatico alla sezione meteo oraria
-  $('html, body').animate({
-    scrollTop: $("#meteo").offset().top - 20
-  }, 500);
-}
-
-// RENDER: Orario filtrato per giorno
-function renderDayHourly(site, dateStr, isToday = false) {
+// Rendering Fasce Orarie
+function renderDayHourly(site, dateStr, isToday) {
   const container = $('#hourly-container').empty();
-  if (!weatherData.hourly) return;
-
   const hours = weatherData.hourly.time;
-  const currentHour = isToday ? new Date().getHours() : 0;
+  const curHour = new Date().getHours();
 
-  hours.forEach((time, idx) => {
+  hours.forEach((time, i) => {
     if (time.startsWith(dateStr)) {
       const dateObj = new Date(time);
-      const hour = dateObj.getHours();
+      const h = dateObj.getHours();
 
-      // Logica: Se è oggi mostra tutto, se è futuro mostra ogni 3 ore
-      if (isToday ? (hour >= currentHour) : (hour % 3 === 0)) {
+      // Mostra tutte le ore per oggi (dal momento attuale), ogni 3 ore per gli altri giorni
+      if (isToday ? (h >= curHour) : (h % 3 === 0)) {
+        const wc = weatherCodeToEmoji(weatherData.hourly.weathercode[i]);
+        const temp = Math.round(weatherData.hourly.temperature_2m[i]);
+        const windSpeed = Math.round(weatherData.hourly.windspeed_10m[i]);
+        const windDir = degToCompass(weatherData.hourly.winddirection_10m[i]);
+        const timeLabel = h.toString().padStart(2, '0') + ':00';
+
         const card = $('<div class="hourly-card"></div>');
-        const wc = weatherCodeToEmoji(weatherData.hourly.weathercode[idx]);
-        const temp = Math.round(weatherData.hourly.temperature_2m[idx]);
-        const wind = Math.round(weatherData.hourly.windspeed_10m[idx]);
-
-        card.append(`<div class="hourly-time">${hour}:00</div>`);
+        card.append(`<div class="hourly-time">${timeLabel}</div>`);
         card.append(`<div class="hourly-icon">${wc.icon}</div>`);
         card.append(`<div class="hourly-temp">${temp}°</div>`);
+        card.append(`<div class="hourly-desc">${wc.text}</div>`);
         
         if (site.type === 'marine') {
-          // Trova l'indice corrispondente nei dati marini
-          const mIdx = marineData ? marineData.hourly.time.findIndex(t => t === time) : -1;
+          const mIdx = marineData ? marineData.hourly.time.indexOf(time) : -1;
           const wave = mIdx !== -1 ? metersToCm(marineData.hourly.wave_height[mIdx]) : '--';
-          card.append(`<div class="hourly-wind">${kmhToKnots(wind)} kn</div>`);
-          card.append(`<div class="hourly-wave">🌊 ${wave}</div>`);
+          card.append(`<div class="hourly-wind">Vento: ${kmhToKnots(windSpeed)} nodi da ${windDir}</div>`);
+          card.append(`<div class="hourly-wave">🌊 Onda: ${wave} cm</div>`);
         } else {
-          card.append(`<div class="hourly-wind">${wind} km/h</div>`);
+          card.append(`<div class="hourly-wind">Vento: ${windSpeed} km/h da ${windDir}</div>`);
         }
 
         container.append(card);
       }
     }
   });
-
-  if (container.children().length === 0) {
-    container.append('<p class="no-data">Nessun dato disponibile per questo orario.</p>');
-  }
 }
 
-// Caricamento principale
+// Funzione principale di caricamento
 async function loadWeather() {
   showLoading();
   hideError();
@@ -257,25 +193,25 @@ async function loadWeather() {
     }
 
     renderCurrentSummary(site);
-    renderDaysCalendar(site); // Questo ora include i click handler
-    renderDayHourly(site, getTodayDateString(), true); // Mostra "Oggi" di default
+    renderDaysCalendar(site);
+    
+    // Al caricamento mostra sempre il giorno selezionato (inizialmente oggi)
+    const currentSelectedDate = weatherData.daily.time[selectedDayIndex];
+    const isToday = currentSelectedDate === new Date().toISOString().split('T')[0];
+    renderDayHourly(site, currentSelectedDate, isToday);
     
     hideLoading();
   } catch (err) {
     console.error(err);
-    showError('Errore durante il caricamento dei dati.');
+    showError('Errore nel recupero dei dati meteo');
     hideLoading();
   }
 }
 
-// Avvio al caricamento del DOM
+// Avvio
 $(async function() {
-  const ready = await loadSitesData();
-  if (ready) {
-    loadWeather();
-  }
-
-  $('#refresh-btn').on('click', function() {
-    loadWeather();
-  });
+  const ok = await loadSitesData();
+  if (ok) loadWeather();
+  
+  $('#refresh-btn').on('click', loadWeather);
 });
