@@ -18,7 +18,7 @@ $city = isset($_GET['city']) ? $_GET['city'] : 'alcamo';
   <div class="app-container">
     <!-- Header -->
     <header class="app-header">
-      <a href="index.php" class="back-btn">‹ Indietro</a>
+      <a href="./" class="back-btn">‹ Indietro</a>
       <h1 id="city-name" class="city-title">Caricamento...</h1>
       <button id="download-png" class="refresh-btn" title="Scarica PNG">📷</button>
       <button id="refresh-btn" class="refresh-btn">⟳</button>
