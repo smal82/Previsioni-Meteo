@@ -37,59 +37,49 @@ $('#city-form').on('submit', async function(e) {
     return;
   }
   
-  // Disabilita il pulsante e mostra loading
   addBtn.prop('disabled', true).html('<span class="loading-spinner"></span>Ricerca in corso...');
   
   try {
-    // Cerca coordinate tramite Geocoding API di Open-Meteo
-    // Ho aggiunto "Munich" come fallback se l'utente scrive "Monaco di Baviera" per aiutare l'API
-    let searchQuery = cityName;
+    // Gestione nomi italiani problematici per l'API
+    let searchName = cityName;
     if (cityName.toLowerCase().includes('baviera')) {
-      searchQuery = 'Munich';
+      searchName = 'Munich'; // Forza la ricerca su Monaco di Baviera
     }
 
-    const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchQuery)}&count=1&language=it&format=json`;
+    const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchName)}&count=1&language=it&format=json`;
     
     const geocodeRes = await fetch(geocodeUrl);
     const geocodeData = await geocodeRes.json();
     
     if (!geocodeData.results || geocodeData.results.length === 0) {
-      showMessage(`Città "${cityName}" non trovata. Verifica il nome.`, 'error');
+      showMessage(`Città "${cityName}" non trovata.`, 'error');
       addBtn.prop('disabled', false).text('Aggiungi Città');
       return;
     }
     
     const location = geocodeData.results[0];
-    // Usiamo il nome inserito dall'utente per la chiave, ma i dati dall'API
+    // La chiave deve essere generata dal nome inserito dall'utente per coerenza con l'URL
     const cityKey = generateCityKey(cityName);
     
-    // Prepara i dati da salvare
     const cityData = {
       key: cityKey,
-      name: location.name,
+      name: cityName, // Teniamo il nome inserito dall'utente (es. "Monaco di Baviera")
       type: isMarine ? 'marine' : 'normal',
       lat: location.latitude,
       lon: location.longitude
     };
     
-    // Invia al server per salvare
     const saveRes = await fetch('save-city.php', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(cityData)
     });
     
     const saveData = await saveRes.json();
     
     if (saveData.success) {
-      showMessage(`✓ Città "${cityData.name}" aggiunta con successo!`, 'success');
-      
-      // Aggiungi alla lista visivamente
+      showMessage(`✓ Città "${cityData.name}" aggiunta!`, 'success');
       addCityToList(cityKey, cityData);
-      
-      // Reset form
       $('#city-name').val('');
       $('#is-marine').prop('checked', false);
     } else {
@@ -98,17 +88,14 @@ $('#city-form').on('submit', async function(e) {
     
   } catch (error) {
     console.error('Errore:', error);
-    showMessage('Errore durante l\'aggiunta della città. Riprova.', 'error');
+    showMessage('Errore durante l\'aggiunta.', 'error');
   } finally {
     addBtn.prop('disabled', false).text('Aggiungi Città');
   }
 });
 
-// Aggiungi città alla lista visivamente
 function addCityToList(key, cityData) {
   const container = $('#cities-container');
-  
-  // Rimuovi messaggio "nessuna città" se presente
   container.find('p').remove();
   
   const icon = cityData.type === 'marine' ? '🌊' : '🏛️';
@@ -118,67 +105,42 @@ function addCityToList(key, cityData) {
   const cityItem = $(`
     <div class="city-item" data-key="${key}">
       <div class="city-item-info">
-        <div class="city-item-name">
-          ${icon} ${cityData.name}
-        </div>
-        <div class="city-item-type ${typeClass}">
-          ${typeText} • Lat: ${cityData.lat}, Lon: ${cityData.lon}
-        </div>
+        <div class="city-item-name">${icon} ${cityData.name}</div>
+        <div class="city-item-type ${typeClass}">${typeText} • Lat: ${cityData.lat}, Lon: ${cityData.lon}</div>
       </div>
-      <button class="btn-delete" onclick="deleteCity('${key}')">
-        Elimina
-      </button>
+      <button class="btn-delete" onclick="deleteCity('${key}')">Elimina</button>
     </div>
   `);
-  
   container.append(cityItem);
 }
 
-// Elimina città
 async function deleteCity(cityKey) {
-  if (!confirm('Sei sicuro di voler eliminare questa città?')) {
-    return;
-  }
-  
+  if (!confirm('Sei sicuro?')) return;
   try {
     const res = await fetch('delete-city.php', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key: cityKey })
     });
-    
     const data = await res.json();
-    
     if (data.success) {
-      showMessage('Città eliminata con successo', 'success');
+      showMessage('Città eliminata', 'success');
       $(`.city-item[data-key="${cityKey}"]`).fadeOut(300, function() {
         $(this).remove();
-        
-        // Se non ci sono più città, mostra messaggio
         if ($('#cities-container .city-item').length === 0) {
-          $('#cities-container').html('<p style="color: var(--muted); text-align: center; padding: 20px;">Nessuna città configurata. Aggiungi la prima città sopra.</p>');
+          $('#cities-container').html('<p style="color: var(--muted); text-align: center; padding: 20px;">Nessuna città.</p>');
         }
       });
-    } else {
-      showMessage(`Errore: ${data.message}`, 'error');
     }
-    
   } catch (error) {
-    console.error('Errore:', error);
-    showMessage('Errore durante l\'eliminazione. Riprova.', 'error');
+    showMessage('Errore eliminazione', 'error');
   }
 }
 
-// Pulsante "Ho finito"
 $('#finish-btn').on('click', function() {
-  const citiesCount = $('#cities-container .city-item').length;
-  
-  if (citiesCount === 0) {
-    showMessage('Aggiungi almeno una città prima di continuare', 'error');
+  if ($('#cities-container .city-item').length === 0) {
+    showMessage('Aggiungi almeno una città', 'error');
     return;
   }
-  
   window.location.href = 'index.php';
 });
