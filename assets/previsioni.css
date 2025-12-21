@@ -274,6 +274,21 @@ body {
   display: none !important;
 }
 
+#download-png {
+  margin-right: 8px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+#download-png:hover {
+  transform: scale(1.1);
+}
+
+#download-png:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Responsive */
 @media (min-width: 600px) {
   .app-container {
