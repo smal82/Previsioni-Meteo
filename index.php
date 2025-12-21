@@ -39,7 +39,6 @@ $sites = getSitesArray();
     
     <footer class="main-footer">
       <small>Dati forniti da Open-Meteo</small>
-      <a href="installer.php" class="footer-settings">⚙️ Gestisci città</a>
       <small>Created by smal</small>
     </footer>
   </div>
