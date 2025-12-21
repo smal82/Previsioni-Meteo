@@ -69,28 +69,37 @@ $city = isset($_GET['city']) ? $_GET['city'] : 'alcamo';
   </script>
   <script src="assets/previsioni.js?v=<?php echo APP_VERSION; ?>"></script>
   <script>
-     // Funzione per scaricare la sezione #meteo come PNG
+    // Funzione per scaricare la sezione #meteo come PNG
 $('#download-png').click(function() {
   const btn = $(this);
   const originalText = btn.text();
   
-  // Feedback visivo
   btn.text('⏳').prop('disabled', true);
+  
+  // Salva il titolo originale
+  const hourlyTitleEl = $('#hourly-title');
+  const originalTitle = hourlyTitleEl.text();
+  
+  // Aggiungi il nome della città al titolo
+  const cityName = $('#city-name').text().trim();
+  hourlyTitleEl.text(`${cityName} - ${originalTitle}`);
   
   // Cattura la sezione #meteo
   html2canvas(document.querySelector('#meteo'), {
-    backgroundColor: '#f0f4f8', // Sfondo come la pagina
+    backgroundColor: '#f0f4f8',
     scale: 2,
     logging: false,
     useCORS: true
   }).then(canvas => {
+    // Ripristina il titolo originale
+    hourlyTitleEl.text(originalTitle);
+    
     canvas.toBlob(function(blob) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      const cityName = $('#city-name').text().toLowerCase().replace(/\s+/g, '-');
+      const cityNameFile = cityName.toLowerCase().replace(/\s+/g, '-');
       
-      const hourlyTitle = $('#hourly-title').text().trim();
-      const datePart = hourlyTitle.toLowerCase()
+      const datePart = originalTitle.toLowerCase()
         .replace(/\s+/g, '-')
         .replace(/[àáâãäå]/g, 'a')
         .replace(/[èéêë]/g, 'e')
@@ -99,7 +108,7 @@ $('#download-png').click(function() {
         .replace(/[ùúûü]/g, 'u')
         .replace(/[^a-z0-9-]/g, '');
       
-      link.download = `meteo-${cityName}-${datePart}.png`;
+      link.download = `meteo-${cityNameFile}-${datePart}.png`;
       link.href = url;
       document.body.appendChild(link);
       link.click();
@@ -111,6 +120,8 @@ $('#download-png').click(function() {
   }).catch(error => {
     console.error('Errore durante la creazione del PNG:', error);
     alert('Errore durante la creazione dell\'immagine');
+    // Ripristina il titolo anche in caso di errore
+    hourlyTitleEl.text(originalTitle);
     btn.text(originalText).prop('disabled', false);
   });
 });
