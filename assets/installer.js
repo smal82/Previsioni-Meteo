@@ -14,7 +14,16 @@ function showMessage(text, type = 'info') {
   }, 5000);
 }
 
-// Genera chiave univoca dalla città
+// Formatta il nome della città (es. "milano" -> "Milano", "reggio calabria" -> "Reggio Calabria")
+function formatCityName(name) {
+  return name
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+// Genera chiave univoca dalla città (sempre minuscola per il JSON)
 function generateCityKey(cityName) {
   return cityName
     .toLowerCase()
@@ -28,14 +37,17 @@ function generateCityKey(cityName) {
 $('#city-form').on('submit', async function(e) {
   e.preventDefault();
   
-  const cityName = $('#city-name').val().trim();
+  const rawCityName = $('#city-name').val().trim();
   const isMarine = $('#is-marine').is(':checked');
   const addBtn = $('#add-btn');
   
-  if (!cityName) {
+  if (!rawCityName) {
     showMessage('Inserisci il nome della città', 'error');
     return;
   }
+  
+  // Formattiamo il nome per avere le maiuscole corrette
+  const cityName = formatCityName(rawCityName);
   
   addBtn.prop('disabled', true).html('<span class="loading-spinner"></span>Ricerca in corso...');
   
@@ -58,12 +70,13 @@ $('#city-form').on('submit', async function(e) {
     }
     
     const location = geocodeData.results[0];
-    // La chiave deve essere generata dal nome inserito dall'utente per coerenza con l'URL
+    
+    // La chiave deve essere generata dal nome per coerenza con l'URL
     const cityKey = generateCityKey(cityName);
     
     const cityData = {
       key: cityKey,
-      name: cityName, // Teniamo il nome inserito dall'utente (es. "Monaco di Baviera")
+      name: cityName, // Salviamo il nome formattato (es. "Catania" invece di "catania")
       type: isMarine ? 'marine' : 'normal',
       lat: location.latitude,
       lon: location.longitude
