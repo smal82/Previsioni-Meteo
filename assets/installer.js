@@ -42,7 +42,13 @@ $('#city-form').on('submit', async function(e) {
   
   try {
     // Cerca coordinate tramite Geocoding API di Open-Meteo
-    const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=it&format=json`;
+    // Ho aggiunto "Munich" come fallback se l'utente scrive "Monaco di Baviera" per aiutare l'API
+    let searchQuery = cityName;
+    if (cityName.toLowerCase().includes('baviera')) {
+      searchQuery = 'Munich';
+    }
+
+    const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchQuery)}&count=1&language=it&format=json`;
     
     const geocodeRes = await fetch(geocodeUrl);
     const geocodeData = await geocodeRes.json();
@@ -54,6 +60,7 @@ $('#city-form').on('submit', async function(e) {
     }
     
     const location = geocodeData.results[0];
+    // Usiamo il nome inserito dall'utente per la chiave, ma i dati dall'API
     const cityKey = generateCityKey(cityName);
     
     // Prepara i dati da salvare
