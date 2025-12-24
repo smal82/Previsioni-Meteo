@@ -44,7 +44,7 @@ $city_key = strtolower(preg_replace('/[^a-z0-9]/', '', $city_raw));
       </section>
 
       <section id="meteo" class="section">
-        <h2 class="section-title" id="hourly-title">Oggi - Orario</h2>
+        <h2 class="section-title" id="hourly-title">Oggi</h2>
         <div id="hourly-container" class="hourly-scroll">
           </div>
       </section>
