@@ -32,13 +32,13 @@ const WEATHER_CODES = {
   // 45–48: resi come NUVOLOSO (non nebbia)
   45: {
     text: "Nuvoloso",
-    day: '<img src="nuvola.png" style="width: 50px; height: 50px;" />',
-    night: '<img src="nuvola.png" style="width: 50px; height: 50px;" />'
+    day: '<div id="divnuvola"><img src="nuvola.png" /></div>',
+    night: '<div id="divnuvola"><img src="nuvola.png" /></div>'
   },
   48: {
     text: "Nuvoloso con brina",
-    day: '<img src="nuvola.png" style="width: 50px; height: 50px;" /> ❄️',
-    night: '<img src="nuvola.png" style="width: 50px; height: 50px;" /> ❄️'
+    day: '<div id="divnuvola"><img src="nuvola.png" /> <span id="brina">❄️</span></div>',
+    night: '<div id="divnuvola"><img src="nuvola.png" /> <span id="brina">❄️</span></div>'
   },
   51: { text: "Pioviggine debole", day: "🌦️", night: "🌧️" },
   53: { text: "Pioviggine moderata", day: "🌦️💧", night: "🌧️💧" },
