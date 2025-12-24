@@ -305,3 +305,25 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 }
+
+#divnuvola {
+    height: 45px;  /* equals max image height */
+    width: 100%;
+    text-align: center;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+#divnuvola img {
+    vertical-align: middle;
+    max-height: 45px;
+    max-width: 45px;
+}
+
+#brina {
+        display: inline-block;
+    height: 100%;
+    vertical-align: middle;
+}
