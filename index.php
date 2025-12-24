@@ -20,7 +20,7 @@ $sites = getSitesArray();
 <body>
   <div class="page-wrapper">
     <header class="main-header">
-      <h1>☀️ Meteo Sicilia</h1>
+      <h1>☀️ Previsioni Meteo</h1>
       <p class="subtitle">Scegli la tua città</p>
     </header>
     
